@@ -10,6 +10,7 @@
     restart_bench/1,
     stop_bench/1,
     change_env/2,
+    run_command/4,
     bench_foldl/2,
     get_info/5,
     bench_finished/2,
@@ -81,6 +82,16 @@ change_env(Id, Env) ->
     case ets:lookup(benchmarks, Id) of
         [{_, B, undefined}] ->
             mzb_api_bench:change_env(B, Env);
+        [{_, _, _}] ->
+            erlang:error({badarg, io_lib:format("Benchmark ~p is finished", [Id])});
+        [] ->
+            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+    end.
+
+run_command(Id, Pool, Percent, Command) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, B, undefined}] ->
+            mzb_api_bench:run_command(B, Pool, Percent, Command);
         [{_, _, _}] ->
             erlang:error({badarg, io_lib:format("Benchmark ~p is finished", [Id])});
         [] ->
