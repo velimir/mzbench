@@ -26,7 +26,8 @@
     spawn = false        :: true | false,
     iterator = undefined :: undefined | string(),
     parallel = 1         :: pos_integer(),
-    poisson = false      :: true | false
+    poisson = false      :: true | false,
+    while = []           :: list()
 }).
 
 -spec eval([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
@@ -74,11 +75,13 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
     {ProcNum, State2} = (ArgEvaluator(parallel, LoopSpec, 1))(State1),
     {Spawn, State3} = (ArgEvaluator(spawn, LoopSpec, false))(State2),
     {Poisson, State4} = (ArgEvaluator(poisson, LoopSpec, false))(State3),
+    Asserts = mzbl_ast:find_operation_and_extract_args(while, LoopSpec, []),
     Opts = #opts{
             spawn = Spawn,
             iterator = Iterator,
             parallel = ProcNum,
-            poisson = Poisson
+            poisson = Poisson,
+            while = Asserts
         },
     case mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, [#constant{value = undefined, units = rps}]) of
         [#constant{value = _, units = _} = RPS] ->
@@ -174,50 +177,54 @@ looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel =
     {nil, State}.
 
 timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone) ->
-    LocalTime = msnow() - Start,
-    {Time, State1} = TimeFun(State),
-    {NewRate, Done, State2} = eval_rates(Rate, OldDone, LocalTime, Time, State1),
-    ShouldBe = time_of_next_iteration(NewRate, Time, Done + Shift),
-    Remain = round(ShouldBe) - LocalTime,
-    GotTime = round(Time) - LocalTime,
+    case mzb_asserts:check_loop_expr(Opts#opts.while) of
+        false -> {nil, State};
+        _ ->
+            LocalTime = msnow() - Start,
+            {Time, State1} = TimeFun(State),
+            {NewRate, Done, State2} = eval_rates(Rate, OldDone, LocalTime, Time, State1),
+            ShouldBe = time_of_next_iteration(NewRate, Time, Done + Shift),
+            Remain = round(ShouldBe) - LocalTime,
+            GotTime = round(Time) - LocalTime,
 
-    NeedToSleep = max(0, min(Remain, GotTime)),
-    Sleep =
-        case Opts#opts.poisson of
-            true -> max(0, min(round(-Remain * math:log(random:uniform())), GotTime));
-            false -> NeedToSleep
-        end,
-    case Sleep > ?MAXSLEEP of
-        true ->
-            timer:sleep(?MAXSLEEP),
-            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done);
-        false ->
-            Sleep > 0 andalso timer:sleep(Sleep),
-            case Time =< LocalTime + Sleep of
-                true -> {nil, State2};
+            NeedToSleep = max(0, min(Remain, GotTime)),
+            Sleep =
+                case Opts#opts.poisson of
+                    true -> max(0, min(round(-Remain * math:log(random:uniform())), GotTime));
+                    false -> NeedToSleep
+                end,
+            case Sleep > ?MAXSLEEP of
+                true ->
+                    timer:sleep(?MAXSLEEP),
+                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done);
                 false ->
-                    BatchStart = msnow(),
-                    Iterator = Opts#opts.iterator,
-                    Step = Opts#opts.parallel,
-                    NextState =
-                        case Opts#opts.spawn of
-                            false ->
-                                case Iterator of
-                                    undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
-                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
-                                end;
-                            true ->
-                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
-                        end,
-                    BatchEnd = msnow(),
-                    NewBatch = case IsFirst of
-                        true -> Batch;
-                        false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
-                    end,
+                    Sleep > 0 andalso timer:sleep(Sleep),
+                    case Time =< LocalTime + Sleep of
+                        true -> {nil, State2};
+                        false ->
+                            BatchStart = msnow(),
+                            Iterator = Opts#opts.iterator,
+                            Step = Opts#opts.parallel,
+                            NextState =
+                                case Opts#opts.spawn of
+                                    false ->
+                                        case Iterator of
+                                            undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
+                                            _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                                        end;
+                                    true ->
+                                        k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                                end,
+                            BatchEnd = msnow(),
+                            NewBatch = case IsFirst of
+                                true -> Batch;
+                                false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
+                            end,
 
-                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
+                            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
+                    end
             end
-    end.
+end.
 
 eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State) ->
     {Rate, State1} = F(State),
