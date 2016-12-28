@@ -119,7 +119,7 @@ class BenchChecker {
             return ast.args.reduce((a, x) => {a[x.key] = x.value; return a;}, {});
         }
 
-        let newshadowed = Object.assign({}, shadowed);
+        let newshadowed = Object.keys(shadowed).reduce((a, x) => {a[x] = true; return a;}, {});
         if (ast.name && ast.name === "loop") {
             newshadowed = ast.args.reduce((a, x) => {
                 if (x.key === "iterator") a[x.value] = true;
