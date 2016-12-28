@@ -61,7 +61,7 @@ script:
      validate-examples) pip install -r requirements.txt && make -C examples check;;
      error-messages) pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
      dashboard-tests) pip install -r requirements.txt &&
-                      cd server/dashboard && npm install &&
+                      cd server/dashboard && npm install --production &&
                       ../../bin/mzbench start_server && make -C ../../node local_tgz && node test/start.js;;
      http-worker-tests) pip install -r requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
