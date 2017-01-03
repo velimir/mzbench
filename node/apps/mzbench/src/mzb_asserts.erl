@@ -21,13 +21,14 @@ validate(#operation{name = assert, args = [Time, Expression], meta = M}) ->
     ++
     validate_assert_expr(Expression, M).
 
-validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) when is_list(Op1), is_number(Op2) ->
-    validate_assert_op(Name, M);
-validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) when is_list(Op2), is_number(Op1) ->
-    validate_assert_op(Name, M);
+validate_assert_expr(Op) when is_number(Op) or is_list(Op) -> [];
+validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) ->
+    validate_assert_op(Name, M) ++ validate_assert_expr(Op1) ++ validate_assert_expr(Op2);
 validate_assert_expr(_Invalid, M) ->
     [mzb_string:format("~sInvalid assert expression", [mzbl_script:meta_to_location_string(M)])].
 
+validate_assert_op('and', _) -> [];
+validate_assert_op('or', _) -> [];
 validate_assert_op(gt, _) -> [];
 validate_assert_op(lt, _) -> [];
 validate_assert_op(gte, _) -> [];
@@ -67,18 +68,25 @@ update_state(TimeSinceCheck, State) ->
             end
         end, State).
 
-check_loop_expr(List) -> lists:all(fun check_loop_op/1, List).
+check_loop_expr(List) -> lists:all(fun check_expr/1, List).
 
-check_loop_op(#operation{args = [Metric, Value]} = Op) when is_list(Metric) ->
-    check_loop_op(Op#operation{args = [mzb_metrics_cache:get_value(Metric), Value]});
-check_loop_op(#operation{args = [Value, Metric]} = Op) when is_list(Metric) ->
-    check_loop_op(Op#operation{args = [Value, mzb_metrics_cache:get_value(Metric)]});
-check_loop_op(#operation{name = Op, args = [Value1, Value2]}) ->
-    check_value(Op, Value1, Value2).
+get_value(V) when is_number(V) -> V;
+get_value(Metric) when is_list(Metric) -> mzb_metrics:get_value(Metric).
 
-check_expr(#operation{name = Op, args = [Metric, Value1]}) ->
-    try mzb_metrics:get_value(Metric) of
-        Value2 -> check_value(Op, Value2, Value1)
+check_expr(#operation{name = 'not', args = [Exp1]}) -> !check_expr(Exp1);
+check_expr(#operation{name = 'and', args = [Exp1, Exp2]}) ->
+    case check_expr(Exp1) of
+        false -> false;
+        true -> check_expr(Exp2)
+    end;
+check_expr(#operation{name = 'or', args = [Exp1, Exp2]}) ->
+    case check_expr(Exp1) of
+        true -> true;
+        false -> check_expr(Exp2)
+    end;
+check_expr(#operation{name = Op, args = [Value1, Value2]}) ->
+    try {get_value(Value1), get_value(Value2)} of
+        {V1, V2} -> check_value(Op, V1, V2)
     catch
         error:{badarg, Metric, _} -> false
     end.
@@ -96,9 +104,16 @@ format_error(#{assert_time:= ExpectedTime, assert_expr:= Expr, satisfy_time:= ST
     io_lib:format("Assertion: ~s~nwas expected to hold for ~s~nbut held for just ~s",
                   [format_expr(Expr), format_time(ExpectedTime), format_time(STime)]).
 
-format_expr(#operation{name = Operation, args = [Op1, Op2]}) when is_list(Op1), is_number(Op2) ->
-    io_lib:format("~s ~s ~p", [Op1, format_op(Operation), Op2]).
+format_expr(Op) when is_list(Op) -> Op;
+format_expr(Op) when is_integer(Op) -> integer_to_list(Op);
+format_expr(Op) when is_float(Op) -> float_to_list(Op);
+format_expr(#operation{name = 'not', args = [Op1]}) ->
+    io_lib:format("(not ~s)", [format_expr(Op1)]);
+format_expr(#operation{name = Operation, args = [Op1, Op2]}) ->
+    io_lib:format("(~s ~s ~s)", [format_expr(Op1), format_op(Operation), format_expr(Op2)]).
 
+format_op('or') -> "or";
+format_op('and') -> "and";
 format_op(gt) -> ">";
 format_op(lt) -> "<";
 format_op(gte) -> ">=";
