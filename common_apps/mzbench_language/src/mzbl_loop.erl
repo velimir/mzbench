@@ -178,7 +178,7 @@ looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel =
     {nil, State}.
 
 timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone) ->
-    case mzb_asserts:check_loop_expr(Opts#opts.while) of
+    case mzbl_asserts:check_loop_expr(Opts#opts.while) of
         false -> {nil, State};
         _ ->
             LocalTime = msnow() - Start,
