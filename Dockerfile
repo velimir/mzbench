@@ -37,29 +37,41 @@ RUN curl -O -L https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-amd
     && echo "${KUBECTL_CHECKSUM}  kubernetes-client-linux-amd64.tar.gz" | sha256sum -c - \
     && tar -xf kubernetes-client-linux-amd64.tar.gz \
     && mv kubernetes/client/bin/kubectl /usr/bin/kubectl \
-    && rm -rf kubernetes \
+    && rm -rf kubernete* \
     && chmod +x /usr/bin/kubectl \
-    && mkdir -p /etc/mzbench /root/.local/share/mzbench_workers ${HOME_DIR}/.ssh \
+    && mkdir -p /etc/mzbench ${HOME_DIR}/.ssh \
     && ssh-keygen -A \
     && cp /etc/ssh/ssh_host_rsa_key ${HOME_DIR}/.ssh/id_rsa \
     && cat /etc/ssh/ssh_host_rsa_key.pub >> ${HOME_DIR}/.ssh/authorized_keys \
     && chmod 0600 ${HOME_DIR}/.ssh/authorized_keys
 
-COPY . $MZBENCH_SRC_DIR
+COPY . .
 
-# Install Mzbench_api server, Node, Workers
-#  - Mzbench_api would be installed to ${MZBENCH_API_DIR}
-#  - Node would be installed to /root/.local/share
-#  - Workers would be installed to /root/.local/share/mzbench_workers
-RUN echo "[{mzbench_api, [{network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config \
+# Install Mzbench_api server, Node, Workers through default path
+#  - Mzbench_api application would be installed to ${MZBENCH_API_DIR}
+#  - Node application would be installed to ${HOME_DIR}/.local/share
+#  - Workers packages would be stored at ${MZBENCH_API_DIR}/cache
+RUN echo "[{mzbench_api, [ {node_git,\"file:///${MZBENCH_SRC_DIR}\"}, {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config \
     && pip install -r requirements.txt \
     && make -C ./server generate \
-    && cp -R ./server/_build/default/rel/mzbench_api ${MZBENCH_API_DIR} \
+    && cp -R ./server/_build/default/rel/mzbench_api ${MZBENCH_API_DIR}/ \
     && make -C ./node install \
-    && cd ./workers && for WORKER in *; do make -C $WORKER/ generate_tgz && tar xzf ${WORKER}/${WORKER}_worker.tgz -C /root/.local/share/mzbench_workers; done \
-    && rm -rf $MZBENCH_SRC_DIR
+    && make -C ./node local_tgz \
+    && ln -s ${HOME_DIR}/.local/cache/mzbench_api/packages/node-*_erts*.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/node-someversion-someos.tgz \
+    && cd ./workers \
+    && for WORKER in * \
+        ; do make -C $WORKER/ generate_tgz \
+        && mv ${WORKER}/${WORKER}_worker.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/${WORKER}_worker-someversion-someos.tgz \
+        ; done \
+    && for WORKER in * \
+        ; do make -C $WORKER/ clean \
+        ; rm -rf $WORKER/_build \
+        ; done \
+    ; cd $MZBENCH_SRC_DIR \
+    && make -C ./server clean \
+    && make -C ./node clean
 
 EXPOSE 80
 WORKDIR $MZBENCH_API_DIR
 
-CMD bin/mzbench_api foreground
+CMD $MZBENCH_API_DIR/bin/mzbench_api foreground
