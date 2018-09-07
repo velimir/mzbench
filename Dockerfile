@@ -39,7 +39,7 @@ RUN curl -O -L https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-amd
     && mv kubernetes/client/bin/kubectl /usr/bin/kubectl \
     && rm -rf kubernete* \
     && chmod +x /usr/bin/kubectl \
-    && mkdir -p /etc/mzbench ${HOME_DIR}/.ssh \
+    && mkdir -p /etc/mzbench ${HOME_DIR}/.local/share/mzbench_workers ${HOME_DIR}/.ssh \
     && ssh-keygen -A \
     && cp /etc/ssh/ssh_host_rsa_key ${HOME_DIR}/.ssh/id_rsa \
     && cat /etc/ssh/ssh_host_rsa_key.pub >> ${HOME_DIR}/.ssh/authorized_keys \
@@ -51,7 +51,7 @@ COPY . .
 #  - Mzbench_api application would be installed to ${MZBENCH_API_DIR}
 #  - Node application would be installed to ${HOME_DIR}/.local/share
 #  - Workers packages would be stored at ${MZBENCH_API_DIR}/cache
-RUN echo "[{mzbench_api, [ {node_git,\"file:///${MZBENCH_SRC_DIR}\"}, {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config \
+RUN echo "[{mzbench_api, [ {node_deployment_path,\"${MZBENCH_SRC_DIR}\"}, {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config \
     && pip install -r requirements.txt \
     && make -C ./server generate \
     && cp -R ./server/_build/default/rel/mzbench_api ${MZBENCH_API_DIR}/ \
@@ -61,11 +61,11 @@ RUN echo "[{mzbench_api, [ {node_git,\"file:///${MZBENCH_SRC_DIR}\"}, {auto_upda
     && cd ./workers \
     && for WORKER in * \
         ; do make -C $WORKER/ generate_tgz \
-        && mv ${WORKER}/${WORKER}_worker.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/${WORKER}_worker-someversion-someos.tgz \
+        && tar xzf ${WORKER}/${WORKER}_worker.tgz -C ${HOME_DIR}/.local/share/mzbench_workers \
         ; done \
     && for WORKER in * \
-        ; do make -C $WORKER/ clean \
-        ; rm -rf $WORKER/_build \
+        ; do rm -rf ${WORKER}/_build \
+        && make -C $WORKER/ clean \
         ; done \
     ; cd $MZBENCH_SRC_DIR \
     && make -C ./server clean \
