@@ -50,26 +50,16 @@ COPY . .
 # Install Mzbench_api server, Node, Workers through default path
 #  - Mzbench_api application would be installed to ${MZBENCH_API_DIR}
 #  - Node application would be installed to ${HOME_DIR}/.local/share
-#  - Workers packages would be stored at ${MZBENCH_API_DIR}/cache
+#  - Workers packages would be stored at ${HOME_DIR}/.local/share/mzbench_workers
 RUN echo "[{mzbench_api, [ {node_deployment_path,\"${MZBENCH_SRC_DIR}\"}, {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config \
     && pip install -r requirements.txt \
     && make -C ./server generate \
     && cp -R ./server/_build/default/rel/mzbench_api ${MZBENCH_API_DIR}/ \
     && make -C ./node install \
     && make -C ./node local_tgz \
-    && ln -s ${HOME_DIR}/.local/cache/mzbench_api/packages/node-*_erts*.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/node-someversion-someos.tgz \
-    && cd ./workers \
-    && for WORKER in * \
-        ; do make -C $WORKER/ generate_tgz \
-        && tar xzf ${WORKER}/${WORKER}_worker.tgz -C ${HOME_DIR}/.local/share/mzbench_workers \
-        ; done \
-    && for WORKER in * \
-        ; do rm -rf ${WORKER}/_build \
-        && make -C $WORKER/ clean \
-        ; done \
-    ; cd $MZBENCH_SRC_DIR \
-    && make -C ./server clean \
-    && make -C ./node clean
+    && ln -s ${HOME_DIR}/.local/cache/mzbench_api/packages/node-*_erts*.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/node-someversion-someos.tgz 
+
+RUN make -C ./server extract-workers
 
 EXPOSE 80
 WORKDIR $MZBENCH_API_DIR
