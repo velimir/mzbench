@@ -32,7 +32,7 @@ build-workers:
 .PHONY: extract-workers
 extract-workers: tmp-dir build-workers
 	cd $(TMP_ROOT)/opt/mzbench_api/cache/ && \
-	for WORKER_TGZ in * ; do \ 
+	for WORKER_TGZ in * ; do \
 		tar xzf $${WORKER_TGZ} -C ~/.local/share/mzbench_workers ; \
 	done
 
