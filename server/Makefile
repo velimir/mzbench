@@ -24,17 +24,17 @@ tmp-dir:
 .PHONY: build-workers
 build-workers:
 	cd ../workers/ && \
-	for WORKER in * ; \
-		do make -C $${WORKER}/ generate_tgz && \
+	for WORKER in * ; do \
+		make -C $${WORKER}/ generate_tgz && \
 		cp $${WORKER}/$${WORKER}_worker.tgz $(TMP_ROOT)/opt/mzbench_api/cache/$${WORKER}-someversion-someos.tgz ; \
-		done
+	done
 
 .PHONY: extract-workers
 extract-workers: tmp-dir build-workers
 	cd $(TMP_ROOT)/opt/mzbench_api/cache/ && \
-	for WORKER_TGZ in * ; \
-		do tar xzf $${WORKER_TGZ} -C ~/.local/share/mzbench_workers ; \
-		done
+	for WORKER_TGZ in * ; do \ 
+		tar xzf $${WORKER_TGZ} -C ~/.local/share/mzbench_workers ; \
+	done
 
 .PHONY: rpm
 rpm: generate tmp-dir build-workers
