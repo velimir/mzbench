@@ -44,7 +44,6 @@ ENV CODE_LOADING_MODE=interactive
 ARG KUBECTL_VERSION=1.10.7
 ARG KUBECTL_CHECKSUM=169b57c6707ed8d8be9643b0088631e5c0c6a37a5e99205f03c1199cd32bc61e
 
-ENV MZBENCH_SRC_DIR /opt/mzbench_src
 ENV MZBENCH_API_DIR /opt/mzbench_api
 ENV HOME_DIR /root
 
@@ -62,9 +61,8 @@ RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-
     && cp /etc/ssh/ssh_host_rsa_key ${HOME_DIR}/.ssh/id_rsa \
     && cat /etc/ssh/ssh_host_rsa_key.pub >> ${HOME_DIR}/.ssh/authorized_keys \
     && chmod 0600 ${HOME_DIR}/.ssh/authorized_keys \
-    && echo "[{mzbench_api, [ {node_deployment_path, \"${MZBENCH_SRC_DIR}\"}, {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config
+    && echo "[{mzbench_api, [ {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config
 
-COPY . $MZBENCH_SRC_DIR
 COPY --from=build $MZBENCH_API_DIR $MZBENCH_API_DIR
 COPY --from=build ${HOME_DIR}/.local ${HOME_DIR}/.local
 
