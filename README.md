@@ -2,7 +2,7 @@
 
 ***Expressive, scalable load testing tool***
 
-[![Build Status](https://travis-ci.org/satori-com/mzbench.svg?branch=master)](https://travis-ci.org/satori-com/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/mzbench/mzbench.svg?branch=master)](https://travis-ci.org/mzbench/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ![Graphs](doc/images/graphs.gif)
 
@@ -15,7 +15,7 @@ MZBench is:
  - **Cloud-aware:** MZBench can allocates nodes directly from Amazon EC2 or run on a local machine.
  - **Scalable:** tested with 100 nodes and millions of connections.
  - **Extendable:** write your own [cloud plugins](doc/cloud_plugins.md#how-to-write-a-cloud-plugin) and [workers](doc/workers.md#how-to-write-a-worker).
- - **Open-source:** MZBench is released under the [BSD license](https://github.com/satori-com/mzbench/blob/master/LICENSE).
+ - **Open-source:** MZBench is released under the [BSD license](https://github.com/mzbench/mzbench/blob/master/LICENSE).
 
 [Read the docs →](https://satori-com.github.io/mzbench)
 
@@ -23,7 +23,7 @@ MZBench is:
 
 Out-of-the-box it supports [HTTP](workers/http), [MySQL](workers/mysql), [PostgreSQL](workers/pgsql), [MongoDB](workers/mongo), [Cassandra](workers/cassandra), [XMPP](workers/xmpp), [AMQP](workers/amqp), [TCP](workers/tcp), [Shell commands execution](workers/exec), [Simplified HTTP](workers/simple_http), and [TCPKali](workers/tcpkali).
 
-Implementing addtional protocols is [not that hard](doc/workers.md#how-to-write-a-worker), but if you want something particular to be implemented — feel free to create an [issue](https://github.com/satori-com/mzbench/issues).
+Implementing addtional protocols is [not that hard](doc/workers.md#how-to-write-a-worker), but if you want something particular to be implemented — feel free to create an [issue](https://github.com/mzbench/mzbench/issues).
 
 ## Installation
 
@@ -31,7 +31,7 @@ Implementing addtional protocols is [not that hard](doc/workers.md#how-to-write-
 
 Available for CentOS 7 and Amazon Linux.
 
-Download MZBench RPM from [Github releases page](https://github.com/satori-com/mzbench/releases)
+Download MZBench RPM from [Github releases page](https://github.com/mzbench/mzbench/releases)
 
 ```bash
 # Install RPM
@@ -52,7 +52,7 @@ Docker is a container platform, more information is available at its [website](h
 docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
 ```
 
-After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/satori-com/mzbench/tree/master/docker).
+After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/mzbench/mzbench/tree/master/docker).
 
 Instead of download the image from the docker hub, you may want to build it manually:
 
@@ -83,14 +83,14 @@ To use MZBench, you'll need:
 Download MZBench from GitHub and install Python requirements:
 
 ```bash
-$ git clone https://github.com/satori-com/mzbench
+$ git clone https://github.com/mzbench/mzbench
 $ sudo pip install -r mzbench/requirements.txt
 ```
 
 If you want to use virtualenv (optional) to isolate Python dependencies:
 
 ```bash
-$ git clone https://github.com/satori-com/mzbench
+$ git clone https://github.com/mzbench/mzbench
 $ cd mzbench
 $ virtualenv venv
 $ source venv/bin/activate
