@@ -47,9 +47,11 @@ ARG KUBECTL_CHECKSUM=169b57c6707ed8d8be9643b0088631e5c0c6a37a5e99205f03c1199cd32
 ENV MZBENCH_API_DIR /opt/mzbench_api
 ENV HOME_DIR /root
 
+COPY requirements.txt /tmp
+
 # Install packages, install kubectl (refer https://kubernetes.io/docs/setup/release/notes/), 
 #    create ssh keys, make server.config
-RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-tools \
+RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-tools py2-pip \
     && curl -O -L https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-amd64.tar.gz \
     && echo "${KUBECTL_CHECKSUM}  kubernetes-client-linux-amd64.tar.gz" | sha256sum -c - \
     && tar -xf kubernetes-client-linux-amd64.tar.gz \
@@ -61,6 +63,7 @@ RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-
     && cp /etc/ssh/ssh_host_rsa_key ${HOME_DIR}/.ssh/id_rsa \
     && cat /etc/ssh/ssh_host_rsa_key.pub >> ${HOME_DIR}/.ssh/authorized_keys \
     && chmod 0600 ${HOME_DIR}/.ssh/authorized_keys \
+    && pip install -r /tmp/requirements.txt \
     && echo "[{mzbench_api, [ {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config
 
 COPY --from=build $MZBENCH_API_DIR $MZBENCH_API_DIR
