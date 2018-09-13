@@ -41,7 +41,7 @@ provision_nodes(Config, Logger) ->
             ok = install_node(UniqHosts, Config, Logger),
             install_workers(UniqHosts, Config, Logger, Env);
         _ -> 
-            ok
+            ok = install_workers(UniqHosts, Config, Logger, Env)
     end,
     DirectorNode = nodename(director_sname(Config), 0),
     WorkerNodes = [nodename(worker_sname(Config), N) || N <- lists:seq(1, length(WorkerHosts))],
