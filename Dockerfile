@@ -24,7 +24,8 @@ RUN mkdir -p ${HOME_DIR}/.local/share/mzbench_workers \
     && cp -R ./server/_build/default/rel/mzbench_api ${MZBENCH_API_DIR}/ \
     && make -C ./node install \
     && make -C ./node local_tgz \
-    && ln -s ${HOME_DIR}/.local/cache/mzbench_api/packages/node-*_erts*.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/node-someversion-someos.tgz 
+    && ln -s ${HOME_DIR}/.local/cache/mzbench_api/packages/node-*_erts*.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/node-someversion-someos.tgz \
+    && ln -s ${HOME_DIR}/.local/cache/mzbench_api/packages/node-*_erts*.tgz ${HOME_DIR}/.local/cache/mzbench_api/packages/node-$(git rev-parse HEAD)-someos.tgz
 
 # Install Workers through default path
 #  - Workers packages would be stored at ${HOME_DIR}/.local/share/mzbench_workers
