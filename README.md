@@ -123,7 +123,6 @@ Go to [localhost:4800](http://localhost:4800) and see the benchmark live status:
 
 ![Test Benchmark](doc/images/test_benchmark.png)
 
-
 ## Read Next
 
  - [How to write scenarios →](doc/scenarios/spec.md)
