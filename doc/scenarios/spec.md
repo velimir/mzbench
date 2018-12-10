@@ -1,6 +1,6 @@
 In MZBench, scenarios are .bdl files written in a special DSL (domain specific language). BDL stands for Benchmark Definition Language. Think of it as a simple ident-based (like python) language with a small set of instructions and measurement units.
 
-MZBench test scenarios consist of function calls and multi-line statements. Function name is *identifier*. Indetifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are keys with values, for example:
+MZBench test scenarios consist of function calls and multi-line statements. Function name is *identifier*. Identifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are keys with values, for example:
 
 ```python
 multiline(param1 = 10, param2 = 20):
