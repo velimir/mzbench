@@ -52,7 +52,7 @@ COPY requirements.txt /tmp
 
 # Install packages, install kubectl (refer https://kubernetes.io/docs/setup/release/notes/), 
 #    create ssh keys, make server.config
-RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-tools py2-pip \
+RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-tools py2-pip coreutils \
     && curl -O -L https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-amd64.tar.gz \
     && echo "${KUBECTL_CHECKSUM}  kubernetes-client-linux-amd64.tar.gz" | sha256sum -c - \
     && tar -xf kubernetes-client-linux-amd64.tar.gz \
