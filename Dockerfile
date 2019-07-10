@@ -50,7 +50,7 @@ ENV HOME_DIR /root
 
 COPY requirements.txt /tmp
 
-# Install packages, install kubectl (refer https://kubernetes.io/docs/setup/release/notes/), 
+# Install packages, install kubectl (refer https://kubernetes.io/docs/setup/release/notes/),
 #    create ssh keys, make server.config
 RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-tools py2-pip \
     && curl -O -L https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-amd64.tar.gz \
@@ -69,6 +69,9 @@ RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-
 
 COPY --from=build $MZBENCH_API_DIR $MZBENCH_API_DIR
 COPY --from=build ${HOME_DIR}/.local ${HOME_DIR}/.local
+
+# SSH requires root to have a password. Otherwise it will prompt for an interactive password
+RUN echo "root:Docker!" | chpasswd && "PasswordAuthentication no" > /etc/ssh/sshd_config
 
 EXPOSE 80
 WORKDIR $MZBENCH_API_DIR
