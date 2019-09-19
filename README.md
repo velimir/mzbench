@@ -76,7 +76,7 @@ Given that you can install mzbench in k8s with the command
 
 To use MZBench, you'll need:
 
- - Erlang R17+
+ - Erlang R21+
  - C++ compiler
  - Python 2.6 or 2.7 with pip
 
