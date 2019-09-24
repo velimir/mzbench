@@ -50,7 +50,7 @@ ENV HOME_DIR /root
 
 COPY requirements.txt /tmp
 
-# Install packages, install kubectl (refer https://kubernetes.io/docs/setup/release/notes/), 
+# Install packages, install kubectl (refer https://kubernetes.io/docs/setup/release/notes/),
 #    create ssh keys, make server.config
 RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-tools py2-pip coreutils \
     && curl -O -L https://dl.k8s.io/v${KUBECTL_VERSION}/kubernetes-client-linux-amd64.tar.gz \
@@ -64,6 +64,7 @@ RUN apk add --no-cache libstdc++ git curl openssh openssh-server bash rsync net-
     && cp /etc/ssh/ssh_host_rsa_key ${HOME_DIR}/.ssh/id_rsa \
     && cat /etc/ssh/ssh_host_rsa_key.pub >> ${HOME_DIR}/.ssh/authorized_keys \
     && chmod 0600 ${HOME_DIR}/.ssh/authorized_keys \
+    && echo "root:Docker!" | chpasswd && echo "PasswordAuthentication no" > /etc/ssh/sshd_config \
     && pip install -r /tmp/requirements.txt \
     && echo "[{mzbench_api, [ {auto_update_deployed_code, disable}, {custom_os_code_builds, disable}, {network_interface, \"0.0.0.0\"},{listen_port, 80}]}]." > /etc/mzbench/server.config
 
