@@ -15,30 +15,29 @@ read_and_validate(ScriptFileName, Env) ->
         {ok, Warnings} = validate(Body),
         {ok, Warnings, Body, AutoEnv ++ Env}
     catch
-        C:{read_file_error, File, E} = Error ->
+        C:{read_file_error, File, E} = Error:ST ->
             Message = mzb_string:format(
                 "Failed to read file ~s: ~s",
                 [File, file:format_error(E)]),
-            {error, C, Error, erlang:get_stacktrace(), [Message]};
-        C:{parse_error, {LineNumber, erl_parse, E}} = Error ->
+            {error, C, Error, ST, [Message]};
+        C:{parse_error, {LineNumber, erl_parse, E}} = Error:ST ->
             Message = mzb_string:format(
                 "Failed to parse script ~s:~nline ~p: ~s",
                 [ScriptFileName, LineNumber, [E]]),
-            {error, C, Error, erlang:get_stacktrace(), [Message]};
-        C:{parse_error,{expected, E, {{line, LineNumber}, {column, ColumnNumber}}}} = Error ->
+            {error, C, Error, ST, [Message]};
+        C:{parse_error,{expected, E, {{line, LineNumber}, {column, ColumnNumber}}}} = Error:ST ->
             Message = mzb_string:format(
                 "Failed to parse script ~s:~nline ~p, column ~p: ~p",
                 [ScriptFileName, LineNumber, ColumnNumber, E]),
-            {error, C, Error, erlang:get_stacktrace(), [Message]};
-        C:{invalid_operation_name, Name} = Error ->
-            {error, C, Error, erlang:get_stacktrace(),
+            {error, C, Error, ST, [Message]};
+        C:{invalid_operation_name, Name} = Error:ST ->
+            {error, C, Error, ST,
                 [mzb_string:format("Script ~s is invalid:~nInvalid operation name ~p~n",
                     [ScriptFileName, Name])]};
-        C:{error, {validation, VM}} = Error when is_list(VM) ->
+        C:{error, {validation, VM}} = Error:ST when is_list(VM) ->
             Messages = [mzb_string:format("Script ~s is invalid:~n", [ScriptFileName]) | VM],
-            {error, C, Error, erlang:get_stacktrace(), Messages};
-        C:Error ->
-            ST = erlang:get_stacktrace(),
+            {error, C, Error, ST, Messages};
+        C:Error:ST ->
             Message = mzb_string:format(
                 "Script ~s is invalid:~nError: ~p~n~nStacktrace for the curious: ~p",
                 [ScriptFileName, Error, ST]),

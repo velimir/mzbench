@@ -90,6 +90,7 @@ setup_logger(Handlers) ->
     ok = application:load(lager),
     ok = application:set_env(lager, handlers, Handlers),
     ok = application:set_env(lager, crash_log, undefined),
+    ok = application:set_env(lager, error_logger_redirect, false),
     ok = application:set_env(lager, extra_sinks, [{system_log_lager_event, [{handlers, Handlers}]}]),
     {ok, _} = application:ensure_all_started(lager),
 
@@ -98,7 +99,7 @@ setup_logger(Handlers) ->
     {ok, _} = application:ensure_all_started(sasl).
 
 terminate_node(ExitCode, Message) ->
-    application:stop(lager),
+%    application:stop(lager), % when in doubt, try uncommenting
     case ExitCode == 0 of
         true  -> io:format("~s~n", [Message]);
         false -> io:format(standard_error, "~s~n", [Message])
