@@ -273,18 +273,18 @@ evaluate_derived_metrics(#s{metric_groups = MetricGroups} = State) ->
     system_log:debug("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
 
-check_dynamic_deadlock(#s{} = State) ->
-    Blocked = global_get("blocked.workers"),
-    if Blocked == 0 -> State;
-        true ->
-            WorkerMetrics = [{lists:reverse(N), V} || {"workers.pool" ++ _ = N, counter, V} <- global_metrics()],
-            Started = lists:sum([V || {"detrats" ++ _, V} <- WorkerMetrics]), % "started" reversed
-            Ended = lists:sum([V || {"dedne" ++ _, V} <- WorkerMetrics]), % "ended" reversed
-            if Blocked >= Started - Ended -> mzb_director:notify({assertions_failed, dynamic_deadlock});
-                true -> ok
-            end,
-            State
-    end.
+%% check_dynamic_deadlock(#s{} = State) ->
+%%     Blocked = global_get("blocked.workers"),
+%%     if Blocked == 0 -> State;
+%%         true ->
+%%             WorkerMetrics = [{lists:reverse(N), V} || {"workers.pool" ++ _ = N, counter, V} <- global_metrics()],
+%%             Started = lists:sum([V || {"detrats" ++ _, V} <- WorkerMetrics]), % "started" reversed
+%%             Ended = lists:sum([V || {"dedne" ++ _, V} <- WorkerMetrics]), % "ended" reversed
+%%             if Blocked >= Started - Ended -> mzb_director:notify({assertions_failed, dynamic_deadlock});
+%%                 true -> ok
+%%             end,
+%%             State
+%%     end.
 
 check_assertions(TimePeriod, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs, env = Env} = State) ->
     system_log:info("[ metrics ] CHECK ASSERTIONS:"),
