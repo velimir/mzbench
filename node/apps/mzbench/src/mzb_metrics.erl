@@ -218,8 +218,8 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State2 = evaluate_derived_metrics(State1),
             State3 = check_assertions(TimeSinceTick, State2),
             State4 = check_signals(State3),
-            State5 = check_dynamic_deadlock(State4),
-            State6 = notify_metrics_subscribers(State5),
+            %% State5 = check_dynamic_deadlock(State4),
+            State6 = notify_metrics_subscribers(State4),
             ok = report_metrics(State6),
 
             MergingTime = timer:now_diff(os:timestamp(), Now) / 1000,
