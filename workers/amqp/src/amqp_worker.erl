@@ -64,6 +64,7 @@ connect(_State, _Meta, Param) ->
         port = Port
         }),
     {ok, Channel} = amqp_connection:open_channel(Connection),
+    #'confirm.select_ok'{} = amqp_channel:call(Channel, #'confirm.select'{}),
     {nil, #s{connection = Connection, channel = Channel}}.
 
 disconnect(#s{connection = Connection, channel = Channel,
@@ -144,7 +145,6 @@ subscribe(State, Meta, InQ) when is_list(InQ) ->
     subscribe(State, Meta, list_to_binary(InQ));
 subscribe(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ) ->
     Consumer = spawn_link(?MODULE, consumer, [Channel, Prefix]),
-    #'confirm.select_ok'{} = amqp_channel:call(Channel, #'confirm.select'{}),
     Sub = #'basic.consume'{queue = InQ},
     #'basic.consume_ok'{consumer_tag = Tag} = amqp_channel:subscribe(Channel, Sub, Consumer),
     {Consumer, State#s{consumer_pid = Consumer, subscription_tag = Tag}}.
