@@ -14,7 +14,8 @@
     connection       = undefined,
     channel          = undefined,
     consumer_pid     = undefined,
-    subscription_tag = undefined
+    subscription_tag = undefined,
+    unconfirmed = 0
 }).
 
 -record(payload, {
@@ -112,8 +113,16 @@ publish(#s{channel = Channel, prefix = Prefix} = State, _Meta, X, RoutingKey, Pa
     Publish = #'basic.publish'{exchange = X, routing_key = RoutingKey},
     Binary = erlang:term_to_binary(#payload{data = Payload}),
     ok = amqp_channel:call(Channel, Publish, #amqp_msg{payload = Binary}),
+    State1 =
+        case State of
+            #s{unconfirmed = UC} when UC > 300 ->
+                amqp_channel:waitp_for_confirms(Channel),
+                State#s{unconfirmed = 0};
+            #s{unconfirmed = UC} ->
+                State#s{unconfirmed = UC + 1}
+        end,
     mzb_metrics:notify({Prefix ++ ".publish", counter}, 1),
-    {nil, State}.
+    {nil, State1}.
 
 get(State, Meta, InQ) when is_list(InQ) ->
     get(State, Meta, list_to_binary(InQ));
@@ -135,6 +144,7 @@ subscribe(State, Meta, InQ) when is_list(InQ) ->
     subscribe(State, Meta, list_to_binary(InQ));
 subscribe(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ) ->
     Consumer = spawn_link(?MODULE, consumer, [Channel, Prefix]),
+    #'confirm.select_ok'{} = amqp_channel:call(Channel, #'confirm.select'{}),
     Sub = #'basic.consume'{queue = InQ},
     #'basic.consume_ok'{consumer_tag = Tag} = amqp_channel:subscribe(Channel, Sub, Consumer),
     {Consumer, State#s{consumer_pid = Consumer, subscription_tag = Tag}}.
@@ -151,6 +161,9 @@ consumer_loop(Channel, Prefix) ->
 
         #'basic.cancel_ok'{} ->
             ok;
+
+        #'basic.ack'{} = Ack ->
+            consumer_loop(Channel, Prefix);
 
         {#'basic.deliver'{delivery_tag = Tag}, Content} ->
             #amqp_msg{payload = Payload} = Content,
