@@ -116,7 +116,7 @@ publish(#s{channel = Channel, prefix = Prefix} = State, _Meta, X, RoutingKey, Pa
     State1 =
         case State of
             #s{unconfirmed = UC} when UC > 300 ->
-                amqp_channel:waitp_for_confirms(Channel),
+                amqp_channel:wait_for_confirms(Channel),
                 State#s{unconfirmed = 0};
             #s{unconfirmed = UC} ->
                 State#s{unconfirmed = UC + 1}
