@@ -162,7 +162,7 @@ consumer_loop(Channel, Prefix) ->
         #'basic.cancel_ok'{} ->
             ok;
 
-        #'basic.ack'{} = Ack ->
+        #'basic.ack'{} ->
             consumer_loop(Channel, Prefix);
 
         {#'basic.deliver'{delivery_tag = Tag}, Content} ->
