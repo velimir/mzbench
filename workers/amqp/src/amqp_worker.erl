@@ -169,7 +169,8 @@ consumer_loop(Channel, Prefix) ->
             #amqp_msg{payload = Payload} = Content,
             #payload{timestamp = Now1} = erlang:binary_to_term(Payload),
             mzb_metrics:notify({Prefix ++ ".consume", counter}, 1),
-            mzb_metrics:notify({Prefix ++ ".latency", histogram}, timer:now_diff(erlang:now(), Now1)),
+            mzb_metrics:notify({Prefix ++ ".latency", histogram},
+                               max(0, timer:now_diff(erlang:now(), Now1))),
             amqp_channel:call(Channel, #'basic.ack'{delivery_tag = Tag}),
             consumer_loop(Channel, Prefix);
 
