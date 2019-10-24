@@ -158,11 +158,11 @@ get(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ) ->
     end,
     {nil, State}.
 
-subscribe(State, Meta, InQ) when is_list(InQ) ->
-    subscribe(State, Meta, list_to_binary(InQ));
 subscribe(State, Meta, InQ) ->
     subscribe(State, Meta, InQ, false).
 
+subscribe(State, Meta, InQ, NoAck) when is_list(InQ) ->
+    subscribe(State, Meta, list_to_binary(InQ), NoAck);
 subscribe(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ, NoAck) ->
     Consumer = spawn_link(?MODULE, consumer, [Channel, Prefix]),
     Sub = #'basic.consume'{queue = InQ, no_ack = NoAck},
