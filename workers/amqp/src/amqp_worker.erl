@@ -2,7 +2,7 @@
 -export([initial_state/0, metrics/0]).
 -export([connect/3, disconnect/2,
          declare_exchange/3, declare_queue/3, bind/5,
-         publish/4, publish/5, publish/6, get/3, subscribe/3]).
+         publish/4, publish/5, publish/6, get/3, subscribe/3, subscribe/4]).
 -export([consumer/2, consumer_loop/2]).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
@@ -160,9 +160,12 @@ get(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ) ->
 
 subscribe(State, Meta, InQ) when is_list(InQ) ->
     subscribe(State, Meta, list_to_binary(InQ));
-subscribe(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ) ->
+subscribe(State, Meta, InQ) ->
+    subscribe(State, Meta, InQ, false).
+
+subscribe(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ, NoAck) ->
     Consumer = spawn_link(?MODULE, consumer, [Channel, Prefix]),
-    Sub = #'basic.consume'{queue = InQ},
+    Sub = #'basic.consume'{queue = InQ, no_ack = NoAck},
     #'basic.consume_ok'{consumer_tag = Tag} = amqp_channel:subscribe(Channel, Sub, Consumer),
     {Consumer, State#s{consumer_pid = Consumer, subscription_tag = Tag}}.
 
