@@ -2,7 +2,7 @@
 -export([initial_state/0, metrics/0]).
 -export([connect/3, disconnect/2,
          declare_exchange/3, declare_queue/3, bind/5,
-         publish/4, publish/5, get/3, subscribe/3]).
+         publish/4, publish/5, publish/6, get/3, subscribe/3]).
 -export([consumer/2, consumer_loop/2]).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
@@ -15,7 +15,8 @@
     channel          = undefined,
     consumer_pid     = undefined,
     subscription_tag = undefined,
-    unconfirmed = 0
+    confirm          = false,
+    unconfirmed      = 0
 }).
 
 -record(payload, {
@@ -64,8 +65,17 @@ connect(_State, _Meta, Param) ->
         port = Port
         }),
     {ok, Channel} = amqp_connection:open_channel(Connection),
-    #'confirm.select_ok'{} = amqp_channel:call(Channel, #'confirm.select'{}),
-    {nil, #s{connection = Connection, channel = Channel}}.
+    State = #s{connection = Connection, channel = Channel},
+    State1 =
+        case proplists:get_value(confirm, Param, false) of
+            false ->
+                State;
+            true ->
+                #'confirm.select_ok'{} =
+                    amqp_channel:call(Channel, #'confirm.select'{}),
+                State#s{confirm = true}
+        end,
+    {nil, State1}.
 
 disconnect(#s{connection = Connection, channel = Channel,
         consumer_pid = Consumer, subscription_tag = Tag}, _Meta) ->
@@ -104,18 +114,25 @@ bind(#s{channel = Channel} = State, _Meta, X, RoutingKey, InQ) ->
 publish(State, Meta, RoutingKey, Payload) ->
     publish(State, Meta, ?DEFAULT_X, RoutingKey, Payload).
 
-publish(State, Meta, X, RoutingKey, Payload) when is_list(X) ->
-    publish(State, Meta, list_to_binary(X), RoutingKey, Payload);
-publish(State, Meta, X, RoutingKey, Payload) when is_list(RoutingKey) ->
-    publish(State, Meta, X, list_to_binary(RoutingKey), Payload);
-publish(State, Meta, X, RoutingKey, Payload) when is_list(Payload) ->
-    publish(State, Meta, X, RoutingKey, list_to_binary(Payload));
-publish(#s{channel = Channel, prefix = Prefix} = State, _Meta, X, RoutingKey, Payload) ->
+publish(State, Meta, X, RoutingKey, Payload) ->
+    publish(State, Meta, X, RoutingKey, Payload, 1).
+
+publish(State, Meta, X, RoutingKey, Payload, DeliveryMode) when is_list(X) ->
+    publish(State, Meta, list_to_binary(X), RoutingKey, Payload, DeliveryMode);
+publish(State, Meta, X, RoutingKey, Payload, DeliveryMode) when is_list(RoutingKey) ->
+    publish(State, Meta, X, list_to_binary(RoutingKey), Payload, DeliveryMode);
+publish(State, Meta, X, RoutingKey, Payload, DeliveryMode) when is_list(Payload) ->
+    publish(State, Meta, X, RoutingKey, list_to_binary(Payload), DeliveryMode);
+publish(#s{channel = Channel, prefix = Prefix} = State, _Meta, X, RoutingKey, Payload, DeliveryMode) ->
     Publish = #'basic.publish'{exchange = X, routing_key = RoutingKey},
     Binary = erlang:term_to_binary(#payload{data = Payload}),
-    ok = amqp_channel:call(Channel, Publish, #amqp_msg{payload = Binary}),
+    Msg = #amqp_msg{props   = #'P_basic'{delivery_mode = DeliveryMode},
+                    payload = Binary},
+    ok = amqp_channel:call(Channel, Publish, Msg),
     State1 =
         case State of
+            #s{confirm = false} ->
+                State;
             #s{unconfirmed = UC} when UC > 300 ->
                 amqp_channel:wait_for_confirms(Channel),
                 State#s{unconfirmed = 0};
