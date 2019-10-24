@@ -164,17 +164,17 @@ subscribe(State, Meta, InQ) ->
 subscribe(State, Meta, InQ, NoAck) when is_list(InQ) ->
     subscribe(State, Meta, list_to_binary(InQ), NoAck);
 subscribe(#s{channel = Channel, prefix = Prefix} = State, _Meta, InQ, NoAck) ->
-    Consumer = spawn_link(?MODULE, consumer, [Channel, Prefix]),
+    Consumer = spawn_link(?MODULE, consumer, [Channel, Prefix, NoAck]),
     Sub = #'basic.consume'{queue = InQ, no_ack = NoAck},
     #'basic.consume_ok'{consumer_tag = Tag} = amqp_channel:subscribe(Channel, Sub, Consumer),
     {Consumer, State#s{consumer_pid = Consumer, subscription_tag = Tag}}.
 
-consumer(Channel, Prefix) ->
+consumer(Channel, Prefix, NoAck) ->
     erlang:monitor(process, Channel),
-    consumer_loop(Channel, Prefix).
+    consumer_loop(Channel, Prefix, NoAck).
 
 %% Internal functions
-consumer_loop(Channel, Prefix) ->
+consumer_loop(Channel, Prefix, NoAck) ->
     receive
         #'basic.consume_ok'{} ->
             consumer_loop(Channel, Prefix);
@@ -191,13 +191,16 @@ consumer_loop(Channel, Prefix) ->
             mzb_metrics:notify({Prefix ++ ".consume", counter}, 1),
             mzb_metrics:notify({Prefix ++ ".latency", histogram},
                                max(0, timer:now_diff(erlang:now(), Now1))),
-            amqp_channel:call(Channel, #'basic.ack'{delivery_tag = Tag}),
-            consumer_loop(Channel, Prefix);
+            if
+                NoAck ->
+                    ok;
+                true ->
+                    amqp_channel:call(Channel, #'basic.ack'{delivery_tag = Tag})
+            end,
+            consumer_loop(Channel, Prefix, NoAck);
 
-        %% {'DOWN', _, _, _, _} ->
-        %%     ok;
-        Msg ->
-            lager:info("received message: ~p", [Msg])
+        {'DOWN', _, _, _, _} ->
+            ok
     end.
 
 set_prefix(State, _Meta, NewPrefix) ->
