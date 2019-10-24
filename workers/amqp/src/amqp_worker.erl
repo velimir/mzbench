@@ -3,7 +3,7 @@
 -export([connect/3, disconnect/2,
          declare_exchange/3, declare_queue/3, bind/5,
          publish/4, publish/5, publish/6, get/3, subscribe/3, subscribe/4]).
--export([consumer/2, consumer_loop/2]).
+-export([consumer/3, consumer_loop/3]).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
 
@@ -177,13 +177,13 @@ consumer(Channel, Prefix, NoAck) ->
 consumer_loop(Channel, Prefix, NoAck) ->
     receive
         #'basic.consume_ok'{} ->
-            consumer_loop(Channel, Prefix);
+            consumer_loop(Channel, Prefix, NoAck);
 
         #'basic.cancel_ok'{} ->
             ok;
 
         #'basic.ack'{} ->
-            consumer_loop(Channel, Prefix);
+            consumer_loop(Channel, Prefix, NoAck);
 
         {#'basic.deliver'{delivery_tag = Tag}, Content} ->
             #amqp_msg{payload = Payload} = Content,
