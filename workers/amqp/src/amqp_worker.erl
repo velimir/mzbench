@@ -194,8 +194,10 @@ consumer_loop(Channel, Prefix) ->
             amqp_channel:call(Channel, #'basic.ack'{delivery_tag = Tag}),
             consumer_loop(Channel, Prefix);
 
-        {'DOWN', _, _, _, _} ->
-            ok
+        %% {'DOWN', _, _, _, _} ->
+        %%     ok;
+        Msg ->
+            lager:info("received message: ~p", [Msg])
     end.
 
 set_prefix(State, _Meta, NewPrefix) ->
